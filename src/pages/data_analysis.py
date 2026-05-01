@@ -6,15 +6,12 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 FEATURE_COLUMNS = [
     'Inj Gas Meter Volume Instantaneous',
@@ -46,12 +43,8 @@ HIGH_RISK_THRESHOLD = 5.0
 MEDIUM_RISK_THRESHOLD = 2.0
 
 
-# ---------------------------------------------------------------------------
-# Page entry point
-# ---------------------------------------------------------------------------
-
+# page entry point
 def data_analysis():
-    """Main data analysis page."""
     st.header("Data Analysis & Hydrate Formation Prediction")
 
     from .data_upload import get_uploaded_datasets
@@ -73,11 +66,6 @@ def data_analysis():
 
     _render_manage_datasets_section(uploaded_datasets)
 
-
-# ---------------------------------------------------------------------------
-# Page sections
-# ---------------------------------------------------------------------------
-
 def _render_model_section():
     st.subheader("Machine Learning Model")
     with st.expander("Model Training Information", expanded=False):
@@ -90,7 +78,6 @@ def _render_model_section():
             st.cache_resource.clear()
     return train_hydrate_model()
 
-
 def _render_no_datasets_message():
     st.warning(
         "No datasets uploaded yet. Please upload CSV files in the Data Upload "
@@ -101,7 +88,6 @@ def _render_no_datasets_message():
         "hydrate formation analysis and predictions!"
     )
 
-
 def _render_dataset_selector(uploaded_datasets):
     st.subheader("Dataset Selection")
     return st.selectbox(
@@ -109,7 +95,6 @@ def _render_dataset_selector(uploaded_datasets):
         options=list(uploaded_datasets.keys()),
         key="dataset_selector",
     )
-
 
 def _render_predictions_section(df, model, scaler, feature_columns):
     st.subheader("Hydrate Formation Predictions")
@@ -127,14 +112,12 @@ def _render_predictions_section(df, model, scaler, feature_columns):
     _render_risk_alerts(predictions)
     return df
 
-
 def _render_prediction_metrics(predictions):
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Max Risk", f"{predictions.max():.2f}")
     col2.metric("Avg Risk", f"{predictions.mean():.2f}")
     col3.metric("High Risk Points", int(np.sum(predictions > HIGH_RISK_THRESHOLD)))
     col4.metric("Total Points", len(predictions))
-
 
 def _render_risk_alerts(predictions):
     max_risk = predictions.max()
@@ -144,7 +127,6 @@ def _render_risk_alerts(predictions):
         st.warning("WARNING: High hydrate formation risk detected!")
     else:
         st.success("Hydrate formation risk is within acceptable limits")
-
 
 def _render_visualization_section(df, dataset_name):
     st.subheader("Data Visualization")
@@ -159,7 +141,6 @@ def _render_visualization_section(df, dataset_name):
     if fig is not None:
         st.plotly_chart(fig, use_container_width=True)
 
-
 def _render_data_table_section(df):
     st.subheader("Data Table")
     display_columns = st.multiselect(
@@ -171,14 +152,12 @@ def _render_data_table_section(df):
     if display_columns:
         st.dataframe(df[display_columns], use_container_width=True)
 
-
 def _render_export_section(df, dataset_name):
     st.subheader("Export Results")
     if 'Predicted_Hydrate_Likelihood' in df.columns:
         _render_download_with_predictions(df, dataset_name)
     else:
         _render_download_without_predictions(df, dataset_name)
-
 
 def _render_download_with_predictions(df, dataset_name):
     st.success("Dataset includes ML predictions - ready for download")
@@ -204,7 +183,6 @@ def _render_download_with_predictions(df, dataset_name):
         st.error(f"Error preparing download: {e}")
         st.info("Please try selecting the dataset again or contact support.")
 
-
 def _render_download_without_predictions(df, dataset_name):
     st.warning("No predictions available for this dataset")
     st.info("Please wait for the ML model to generate predictions, then try again.")
@@ -220,7 +198,6 @@ def _render_download_without_predictions(df, dataset_name):
             )
         except Exception as e:
             st.error(f"Error preparing download: {e}")
-
 
 def _render_manage_datasets_section(uploaded_datasets):
     if not uploaded_datasets:
@@ -239,18 +216,15 @@ def _render_manage_datasets_section(uploaded_datasets):
             st.success(f"Removed {dataset_to_remove}")
             st.rerun()
 
-# ---------------------------------------------------------------------------
-# Machine learning
-# ---------------------------------------------------------------------------
+
 
 def _safe_ratio(numerator, denominator):
-    """Element-wise division that returns 0 where denominator is 0/NaN."""
+    """return 0 where denominator is 0/NaN."""
     safe_denom = denominator.replace(0, np.nan)
     return (numerator / safe_denom).fillna(0)
 
 
 def _engineer_features(df):
-    """Add engineered features the model expects, in-place on a copy."""
     df = df.copy()
     df['Volume_Diff'] = (
         df['Inj Gas Meter Volume Instantaneous']
@@ -279,7 +253,6 @@ def _engineer_features(df):
 
 @st.cache_data
 def load_training_data():
-    """Load the training data from final.csv."""
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         data_path = os.path.join(current_dir, '..', '..', 'data', 'final.csv')
@@ -293,7 +266,7 @@ def load_training_data():
 
 @st.cache_resource
 def train_hydrate_model():
-    """Train the hydrate formation prediction model."""
+    """Train model."""
     df = load_training_data()
     if df is None:
         return None, None, None
@@ -324,7 +297,7 @@ def train_hydrate_model():
 
 
 def predict_hydrate_likelihood(df, model, scaler, feature_columns):
-    """Predict hydrate formation likelihood for uploaded data."""
+    """Predict hydrate on uploaded data."""
     if model is None or scaler is None:
         return None
 
@@ -334,19 +307,14 @@ def predict_hydrate_likelihood(df, model, scaler, feature_columns):
     return model.predict(X_scaled)
 
 
-# ---------------------------------------------------------------------------
-# Visualization
-# ---------------------------------------------------------------------------
 
 def _get_time_axis(df):
-    """Return a usable time axis, falling back to the dataframe index."""
     if 'Time' not in df.columns:
         return df.index
     try:
         return pd.to_datetime(df['Time'])
     except (ValueError, TypeError):
         return df.index
-
 
 def _check_required_columns(df, required):
     missing = [col for col in required if col not in df.columns]
@@ -356,14 +324,12 @@ def _check_required_columns(df, required):
         return False
     return True
 
-
 def _classify_risk(value):
     if value > HIGH_RISK_THRESHOLD:
         return 'High'
     if value > MEDIUM_RISK_THRESHOLD:
         return 'Medium'
     return 'Low'
-
 
 def _chart_time_series(df, dataset_name):
     if not _check_required_columns(df, REQUIRED_TIME_SERIES_COLS):
@@ -416,7 +382,6 @@ def _chart_time_series(df, dataset_name):
         st.error(f"Error creating time series plot: {e}")
         return None
 
-
 def _chart_correlation_heatmap(df, dataset_name):
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     corr_matrix = df[numeric_cols].corr()
@@ -427,7 +392,6 @@ def _chart_correlation_heatmap(df, dataset_name):
         title=f"Correlation Matrix - {dataset_name}",
     )
 
-
 def _chart_risk_distribution(df, dataset_name):
     if 'Predicted_Hydrate_Likelihood' not in df.columns:
         st.warning("No hydrate predictions available for this dataset")
@@ -437,7 +401,6 @@ def _chart_risk_distribution(df, dataset_name):
         title=f"Hydrate Risk Distribution - {dataset_name}",
         nbins=30,
     )
-
 
 def _chart_valve_vs_volume(df, dataset_name):
     color = (
