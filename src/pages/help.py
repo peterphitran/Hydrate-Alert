@@ -264,7 +264,7 @@ def _render_footer():
     st.markdown("---")
     st.markdown(
         """
-        ### 🔗 Quick Links
+        ### Quick Links
 
         - **[Upload Data](/)** - Start by uploading your CSV files
         - **[Data Analysis](/)** - View predictions and visualizations
